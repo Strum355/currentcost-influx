@@ -1,0 +1,16 @@
+[package]
+name = "currentcost-influx"
+version = "1.0.0"
+authors = ["Noah Santschi-Cooney <noah@santschi-cooney.ch>"]
+edition = "2018"
+
+[dependencies]
+serialport = "3.3.0"
+quick-xml = { version = "0.17.2", features = [ "serialize" ] }
+serde = { version = "1.0.104", features = [ "derive" ] }
+regex = "1.3.1"
+influxdb = { git = "https://github.com/Strum355/influxdb-rust.git" }
+chrono = "0.4.10"
+futures = "0.3.1"
+tokio = { version = "0.2.6", features = ["macros"] }
+structopt = "0.3.5"
