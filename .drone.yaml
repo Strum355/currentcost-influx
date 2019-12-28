@@ -1,52 +1,87 @@
 ---
 kind: pipeline
-name: CurrentCost InfluxDB ARM pipeline
+name: CurrentCost InfluxDB ARM32 pipeline
+
+platform:
+  os: linux
+  arch: amd64
 
 steps:
 - name: build
   image: rust:1.40
   environment:
-    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-    CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
-    PKG_CONFIG_ALLOW_CROSS: 1
+    CARGO_TARGET_ARMV5TE_UNKNOWN_LINUX_GNUEABI_LINKER: arm-linux-gnueabi-gcc
+    MACHINE: armv4
+    ARCH: arm
+    CC: arm-linux-gnueabi-gcc
+    OPENSSL_LIB_DIR: /tmp/openssl-1.1.1d/
+    OPENSSL_INCLUDE_DIR: /tmp/openssl-1.1.1d/include
   commands:
-    - dpkg --add-architecture armhf
+    - rustup target add armv5te-unknown-linux-gnueabi
+    - mkdir -p releases
     - apt-get update
-    - apt-get install -y pkg-config libssl-dev libudev-dev
-    - apt-get install -y --no-install-recommends g++-aarch64-linux-gnu libc6-dev-arm64-cross
-    - rustup target add aarch64-unknown-linux-gnu
-    - apt-get install -y --no-install-recommends g++-arm-linux-gnueabihf libc6-dev-armhf-cross
-    - rustup target add armv7-unknown-linux-gnueabihf
-    - cargo install cargo-add
-    - cargo add openssl
-    #-------------------------------------------------AMD64-----------------------------------------------#
+    - apt-get install -y gcc-arm-linux-gnueabi
+    - SRC=$(pwd)
+    - cd /tmp
+    - wget https://www.openssl.org/source/openssl-1.1.1d.tar.gz && tar xzf openssl-1.1.1d.tar.gz && cd openssl-1.1.1d
+    - ./config shared && make
+    - cd $SRC
+    - cargo build --target armv5te-unknown-linux-gnueabi --release
+    - cp target/armv5te-unknown-linux-gnueabi/release/currentcost-influx releases/currentcost-influx-arm32
+
+- name: publish
+  image: plugins/github-release
+  settings:
+    api_key:
+      from_secret: github_token
+    files: ./releases/*
+  when:
+    event: tag    
+
+---
+kind: pipeline
+name: CurrentCost InfluxDB AMD64 pipeline
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: build
+  image: rust:1.40
+  commands:
+    - apt-get update
+    - apt-get install -y pkg-config libssl-dev
     - mkdir -p releases
     - cargo build --release
     - cp target/release/currentcost-influx releases/currentcost-influx-amd64
-    #-------------------------------------------------ARM32----------------------------------------------#
-    - SRC_DIR=$(pwd)
-    - cd /tmp
-    - wget https://www.openssl.org/source/openssl-1.1.1d.tar.gz
-    - tar xzf openssl-1.1.1d.tar.gz
-    - export MACHINE=armv7
-    - export ARCH=arm
-    - export CC=arm-linux-gnueabihf-gcc
-    - cd openssl-1.1.1d && ./config shared && make && cd -
-    - export OPENSSL_LIB_DIR=/tmp/openssl-1.1.1d/
-    - export OPENSSL_INCLUDE_DIR=/tmp/openssl-1.1.1d/include
-    - cd $SRC_DIR
-    - cargo build --target=armv7-unknown-linux-gnueabihf --release
-    - cp target/armv7-unknown-linux-gnueabihf/release/currentcost-influx releases/currentcost-influx-armv7
-    #-------------------------------------------------ARM64----------------------------------------------#
-    #- cd /tmp
-    #- rm -rf openssl-1.1.1d && tar xzf openssl-1.1.1d.tar.gz
-    #- export MACHINE=armv8
-    #- export ARCH=armv8-a
-    #- export CC=aarch64-linux-gnu-gcc
-    #- cd openssl-1.1.1d && ./config shared && make && cd -
-    #- cd $SRC_DIR
-    #- cargo build --target=aarch64-unknown-linux-gnu --release
-    #- cp target/aarch64-unknown-linux-gnu/release/currentcost-influx releases/currentcost-influx-aarch64
+
+- name: publish
+  image: plugins/github-release
+  settings:
+    api_key:
+      from_secret: github_token
+    files: ./releases/*
+  when:
+    event: tag    
+
+---
+kind: pipeline
+name: CurrentCost InfluxDB ARM64 pipeline
+
+platform:
+  os: linux
+  arch: arm64
+
+steps:
+- name: build
+  image: rust:1.40
+  commands:
+    - apt-get update
+    - apt-get install -y pkg-config libssl-dev
+    - mkdir -p releases
+    - cargo build --release
+    - cp target/release/currentcost-influx releases/currentcost-influx-arm64
 
 - name: publish
   image: plugins/github-release
