@@ -1,10 +1,10 @@
 [Unit]
 Description=Daemon written in Rust to read CurrentCost CC128 output from serial/USB and push to InfluxDB
-Restart=always
+After=network.target
 
 [Service]
 ExecStart=/usr/local/bin/currentcost-influx -i http://localhost:8086 -u /dev/ttyUSB0
-After=network.target
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
